@@ -23,11 +23,12 @@ let reset = () => {
     carArray = [];
     player_instance = new Car(2, 425, canvas, playerCarSprite, false);
 
+    let dy = 2;
     //generate enemy car
     interval = setInterval(() => {
-        enemy_instance = new Car(getRandom(1, 3), -200, canvas, enemyCarSprite, true);
+        enemy_instance = new Car(getRandom(1, 3), -200, canvas, enemyCarSprite, true, dy);
         carArray.push(enemy_instance);//carArr holds enemy car
-        //console.log(carArray);
+        dy = dy + 0.1;
     }, 1000);
 }
 
@@ -36,19 +37,19 @@ let start = () => {
     ctx = canvas.getContext('2d');
 
     laneSprite = new Image();
-    laneSprite.src = '../assets/lane.png';
+    laneSprite.src = './assets/lane.png';
 
     playerCarSprite = new Image();
-    playerCarSprite.src = '../assets/player.png';
+    playerCarSprite.src = './assets/player.png';
 
     enemyCarSprite = new Image();
-    enemyCarSprite.src = '../assets/enemy.png';
+    enemyCarSprite.src = './assets/enemy.png';
 
     startSprite = new Image();
-    startSprite.src = '../assets/start.png';
+    startSprite.src = './assets/start.png';
 
     gameoverSprite = new Image();
-    gameoverSprite.src = '../assets/gameover.png';
+    gameoverSprite.src = './assets/gameover.png';
 
     lane_instance = new Lane(canvas, laneSprite);
     menu_instance = new Menu(canvas, startSprite);
@@ -62,9 +63,39 @@ let update = () => {
     if (state.current == state.running) {
         lane_instance.update();
 
+        //don't draw car when not visible
+        if (carArray.length > 0) {
+            if (carArray[0].y > canvas.height) {
+                carArray.shift();
+            }
+        }
+
+
         carArray.forEach((car) => {
             car.update();
+
+            if (!car.crossed) {
+                if (car.y > player_instance.y) {
+                    car.cross();
+                    score++;
+                }
+            }
+
+            //if collision, game completed
+            if (car.hasCollidedWithAnotherCar(player_instance)) {
+                state.current = state.gameover;
+                clearInterval(interval);
+                highScore = window.localStorage.getItem('highScore') ? parseInt(window.localStorage.getItem('highScore')) : 0;
+                if (score > highScore) {
+                    highScore = score;
+                    window.localStorage.setItem('highScore', score);
+                }
+            }
         });
+
+
+
+
     };
 }
 
@@ -93,7 +124,7 @@ let draw = () => {
         carArray.forEach((car) => {
             car.draw(ctx);
         });
-        gameover_instance.draw(ctx);
+        gameover_instance.draw(ctx, score, highScore);
     }
 }
 
